@@ -10,7 +10,7 @@ library(nflreadr)
 library(rstudioapi)
 options(scipen = 9999)
 
-setwd(dirname(getActiveDocumentContext()$path))  
+setwd(dirname(getActiveDocumentContext()$path))
 
 #get pbp and ref data
 data <- nflfastR::load_pbp(2011:2022)
@@ -126,7 +126,7 @@ season_avgs %>%
     axis.title.x = element_text(size = 12, vjust = 2)
   ) +
   scale_x_continuous()
-ggsave(path = "plots", filename = "num_penalties.png")
+ggsave(path = "plots", filename = "num_penalties.png", width = 16, height = 9)
 
 #####make the plot for penalty yards
 season_avgs %>%
@@ -178,7 +178,7 @@ season_avgs %>%
     axis.title.x = element_text(size = 12, vjust = 2)
   ) +
   scale_x_continuous()
-ggsave(path = "plots", filename = "penalty_yds.png")
+ggsave(path = "plots", filename = "penalty_yds.png", width = 16, height = 9)
 
 #postseason teams
 team_seasons <- post %>% left_join(reg, by = c("penalty_team" = "penalty_team", "season" = "season"))
