@@ -82,8 +82,10 @@ season_avgs %>%
   #get the lines for seasons
   geom_segment(data=season_avgs, aes(y = season, yend = season, x=4, xend=7), color="gray85", size=0.15) +
   #make the dumbbell plot
-  ggalt::geom_dumbbell(aes(y = season, x = penalties, xend = penalties_reg_avg), size = 2,
-                size_x = 5, size_xend = 5, color = season_avgs$penalty_colour, colour_x = "darkorange", colour_xend = "turquoise4") +
+  ggalt::geom_dumbbell(aes(y = season, x = penalties, xend = penalties_reg_avg),
+                       size = 2, size_x = 5, size_xend = 5,
+                       color = season_avgs$penalty_colour,
+                       colour_x = "darkorange", colour_xend = "turquoise4") +
   #add header to top data points
   geom_text(data=filter(season_avgs, season==2022),
             aes(x=penalties, y=season, label="Post"),
@@ -98,11 +100,11 @@ season_avgs %>%
             aes(x = penalties_reg_avg, y = season, label = sprintf("%0.2f", round(penalties_reg_avg, digits = 2)))) +
   #create Differences section of viz
   geom_rect(data = season_avgs, aes(xmin = 7, xmax = 7.5, ymin = -Inf, ymax = Inf), fill="grey") +
-  geom_text(data = season_avgs, aes(label=sprintf("%0.2f", abs(round(penalty_diff, digits = 2))), y = season, x=7.25), fontface="bold", size=3.6,
+  geom_text(data = season_avgs, aes(label=sprintf("%0.2f", abs(round(penalty_diff, digits = 2))), y = season, x=7.25), fontface="bold", size=4,
             color = season_avgs$penalty_colour) +
   geom_text(data=filter(season_avgs, season==2022), 
             aes(x = 7.25, y = season, label = "Difference"),
-            color="black", size=4, vjust=-1.5, fontface="bold") +
+            color="black", size=5, vjust=-1.5, fontface="bold") +
   #add labels
   labs(x = 'Penalties',
        y = 'Seasons',
@@ -126,7 +128,8 @@ season_avgs %>%
     axis.title.x = element_text(size = 12, vjust = 2)
   ) +
   scale_x_continuous()
-ggsave(path = "plots", filename = "num_penalties.png", width = 16, height = 9)
+ggsave(path = "plots", filename = "num_penalties.png", width = 16, height = 9,
+       dpi = 80)
 
 #####make the plot for penalty yards
 season_avgs %>%
@@ -150,11 +153,11 @@ season_avgs %>%
             aes(x = penalty_yards_reg_avg, y = season, label = sprintf("%0.2f", round(penalty_yards_reg_avg, digits = 2)))) +
   #create Differences section of viz
   geom_rect(data = season_avgs, aes(xmin = 60, xmax = 64, ymin = -Inf, ymax = Inf), fill="grey") +
-  geom_text(data = season_avgs, aes(label=sprintf("%0.2f", abs(round(yards_diff, digits = 2))), y = season, x=62), fontface="bold", size=3.6,
+  geom_text(data = season_avgs, aes(label=sprintf("%0.2f", abs(round(yards_diff, digits = 2))), y = season, x=62), fontface="bold", size=4,
             color = season_avgs$yards_colour) +
   geom_text(data=filter(season_avgs, season==2022), 
             aes(x = 62, y = season, label = "Difference"),
-            color="black", size=4, vjust=-2, fontface="bold") +
+            color="black", size=5, vjust=-1.5, fontface="bold") +
   #add labels
   labs(x = 'Penalty Yards',
        y = 'Seasons',
@@ -178,7 +181,8 @@ season_avgs %>%
     axis.title.x = element_text(size = 12, vjust = 2)
   ) +
   scale_x_continuous()
-ggsave(path = "plots", filename = "penalty_yds.png", width = 16, height = 9)
+ggsave(path = "plots", filename = "penalty_yds.png", width = 16, height = 9,
+       dpi = 80)
 
 #postseason teams
 team_seasons <- post %>% left_join(reg, by = c("penalty_team" = "penalty_team", "season" = "season"))
