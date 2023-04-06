@@ -1,6 +1,5 @@
 #load necessary packages
 library(cli)
-library(car)
 library(dplyr)
 library(ggrepel)
 library(ggimage)
@@ -123,19 +122,20 @@ season_avgs %>%
   theme_bw() +
   theme(
     aspect.ratio = 9 / 16,
-    plot.title = element_text(size = 16, hjust = .5, face = 'bold'),
-    plot.subtitle = element_text(size = 12, hjust = .5),
+    plot.title = element_text(size = 30, hjust = .5, face = 'bold'),
+    plot.subtitle = element_text(size = 20, hjust = .5),
     axis.text.x = element_blank(),
+    axis.text.y = element_text(size = 12),
     axis.ticks = element_blank(),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.border = element_blank(),
-    plot.caption = element_text(size = 10, vjust = 7, hjust = 0.95),
-    axis.title.y = element_text(size = 12, vjust = 10),
-    axis.title.x = element_text(size = 12, vjust = 2)
+    plot.caption = element_text(size = 12, vjust = 7, hjust = 0.95),
+    axis.title.y = element_text(size = 24, vjust = 10),
+    axis.title.x = element_text(size = 24, vjust = 2)
   ) +
   scale_x_continuous()
-ggsave(path = "plots", filename = "num_penalties.png", width = 16, height = 9,
+ggsave(path = "plots", filename = "penalties.png", width = 16, height = 9,
        dpi = 80)
 
 #####make the plot for penalty yards
@@ -172,7 +172,6 @@ season_avgs %>%
   geom_text(data=filter(season_avgs, season==2022), 
             aes(x = 62, y = season, label = "Difference"),
             color="black", size=5, vjust=-1.5, fontface="bold") +
-  #add labels
   labs(x = 'Penalty Yards',
        y = 'Seasons',
        title = 'Penalty Yards in Regular Season VS Postseason',
@@ -181,40 +180,34 @@ season_avgs %>%
                         'average.', collapse = ","),
        caption = "Data: @nflfastR"
   ) +
-  #themes and scale
   theme_bw() +
   theme(
     aspect.ratio = 9 / 16,
-    plot.title = element_text(size = 16, hjust = .5, face = 'bold'),
-    plot.subtitle = element_text(size = 12, hjust = .5),
+    plot.title = element_text(size = 30, hjust = .5, face = 'bold'),
+    plot.subtitle = element_text(size = 20, hjust = .5),
     axis.text.x = element_blank(),
+    axis.text.y = element_text(size = 12),
     axis.ticks = element_blank(),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.border = element_blank(),
-    plot.caption = element_text(size = 10, vjust = 7, hjust = 0.95),
-    axis.title.y = element_text(size = 12, vjust = 10),
-    axis.title.x = element_text(size = 12, vjust = 2)
+    plot.caption = element_text(size = 12, vjust = 7, hjust = 0.95),
+    axis.title.y = element_text(size = 24, vjust = 10),
+    axis.title.x = element_text(size = 24, vjust = 2)
   ) +
   scale_x_continuous()
 ggsave(path = "plots", filename = "penalty_yds.png", width = 16, height = 9,
        dpi = 80)
 
+
+##### performing time series and statistical analysis
 #postseason teams
 team_seasons <- post %>% left_join(reg, by = c("penalty_team" = "penalty_team",
                                                "season" = "season"))
 team_seasons <- unique(team_seasons[c("penalty_team", "season")])
 team_seasons <- paste0(team_seasons$penalty_team, team_seasons$season)
 select_data <- data %>% filter(team_szn %in% team_seasons)
-#fix 2021 bonus week
-#do we want this?
-time_series_data <- select_data %>%
-  mutate(
-    week = case_when(
-    season == 2021 & week > 17 ~ as.integer(week - 1),
-    TRUE ~ week
-    )
-  )
+
 #group the data
 time_series_data <- select_data %>%
   group_by(penalty_team, season, week, season_type) %>%
@@ -228,20 +221,42 @@ ts_week_mean <- time_series_data %>%
             penalties = mean(penalties),
             sample_size = n())
 
-#testing for multicollinearity before fitting linear model
+#fix 2021 bonus week
+#do we want this?
+#time_series_data <- select_data %>%
+#  mutate(
+#    week = case_when(
+#      season >= 2021 & week > 17 ~ as.integer(week - 1),
+#      week = case_when(
+#        season >= 2021 & week > 17 ~ as.integer(week - 1),
+#        TRUE ~ week
+#      )
+#    )
+
+#testing for collinearity before fitting linear model
 time_series_data <- time_series_data %>%
   mutate(
     season_typePOST = ifelse(season_type=='POST', 1, 0)
   )
 
-cor(time_series_data$week, time_series_data$season_typePOST)
+cor.test(time_series_data$week, time_series_data$season_typePOST)
 
-#linear model on non-agg df
+ts_week_mean <- ts_week_mean %>%
+  mutate(
+    season_typePOST = ifelse(season_type=='POST', 1, 0)
+  )
+
+#Collinearity is found between week and season_type (expected!)
+#What does this mean for the upcoming regression and how it can be interpreted?
+#uncertainty of coefficient estimates
+#increases standard error, which causes a decline in t-stat
+#This increases the likelihood to fail to reject the null hypothesis, and cannot
+#as reliably lean on coefficients for scope of impact
+
+#linear model on penalty yards
 lm.pen.yds <- lm(formula = pen_yards ~ week + season_typePOST,
                  data = time_series_data)
 summary(lm.pen.yds)
-
-vif(lm.pen.yds)
 
 pen_yds_predict <- cbind(ts_week_mean,
                          predict(lm.pen.yds, interval = 'confidence',
@@ -252,40 +267,52 @@ ggplot(pen_yds_predict, aes(x=week, y=pen_yards, color = season_type)) +
   geom_point(aes(size = sample_size)) +
   geom_line() +
   scale_color_manual(values = c("REG" = "turquoise4", "POST" = "darkorange2")) +
-  geom_line(aes(week, fit, color = "black")) +
-  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.3) +
+  #geom_line(aes(week, fit, color = "black")) +
+  #geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.3) +
   theme_bw() +
   theme(
     aspect.ratio = 9 / 16,
     plot.title = element_text(size = 30, hjust = .5, face = 'bold'),
-    plot.subtitle = element_text(size = 24, hjust = .5),
+    plot.caption = element_text(size = 12, vjust = 9),
     axis.title.y = element_text(size = 24),
     axis.title.x = element_text(size = 24),
-    axis.text.y = element_text(size = 16),
-    axis.text.x = element_text(size = 16),
+    axis.text.y = element_text(size = 12),
+    axis.text.x = element_text(size = 12),
   ) +
   labs(x = 'Week',
        y = 'Penalty Yards',
        title = 'Average Penalty Yards of Playoff Teams By Week',
-       subtitle = 'Only playoff teams included. Data separated by regular season and postseason.',
        caption = "Data: @nflfastR")
+ggsave(path = "plots", filename = "penalty_yds_ts.png", width = 16, height = 9,
+       dpi = 80)
 
-#####count Penalties time series plot
-ts_week_mean %>%
-  ggplot(aes(x=week, y=penalties, color = season_type)) +
+#linear model on penalties
+lm.pens <- lm(formula = penalties ~ week + season_typePOST,
+              data = time_series_data)
+summary(lm.pens)
+
+ts_week_mean <- cbind(ts_week_mean,
+                      predict(lm.pens, interval = 'confidence',
+                              newdata = ts_week_mean))
+
+#####count penalties time series plot
+ggplot(pen_yds_predict, aes(x=week, y=penalties, color = season_type)) +
   geom_point(aes(size = sample_size)) +
   geom_line() +
   scale_color_manual(values = c("REG" = "turquoise4", "POST" = "darkorange2")) +
   theme_bw() +
   theme(
     aspect.ratio = 9 / 16,
-    plot.title = element_text(size = 16, hjust = .5, face = 'bold'),
-    plot.subtitle = element_text(size = 12, hjust = .5),
-    axis.title.y = element_text(size = 12),
-    axis.title.x = element_text(size = 12)
+    plot.title = element_text(size = 30, hjust = .5, face = 'bold'),
+    plot.caption = element_text(size = 12, vjust = 9),
+    axis.title.y = element_text(size = 24),
+    axis.title.x = element_text(size = 24),
+    axis.text.y = element_text(size = 12),
+    axis.text.x = element_text(size = 12),
   ) +
   labs(x = 'Week',
        y = 'Penalties',
-       title = 'Average Number of Penalties of Playoff Teams By Week',
-       subtitle = 'Only playoff teams included. Data separated by regular season and postseason.',
+       title = 'Average Penalties of Playoff Teams By Week',
        caption = "Data: @nflfastR")
+ggsave(path = "plots", filename = "penalties_ts.png", width = 16, height = 9,
+       dpi = 80)
