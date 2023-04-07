@@ -45,6 +45,12 @@ reg <- reg %>%
   mutate(penalty_yards = round((penalty_yards / weeks), 2),
          penalties = round((penalties / weeks), 2))
 
+#get the average # of penalties and yards for reg and post
+cat("Avg # of penalties per team postseason", mean(post$penalties))
+cat("Avg # of penalty yards per team postseason", mean(post$penalty_yards))
+cat("Avg # of penalties per team regular season", mean(reg$penalties))
+cat("Avg # of penalty yards per team regular season", mean(reg$penalty_yards))
+
 #join regular and postseason data
 penalty_stitch <- post %>% left_join(reg, by = c(
   "penalty_team" = "penalty_team", "season" = "season"
