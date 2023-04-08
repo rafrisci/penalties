@@ -1,6 +1,9 @@
 #load necessary packages
+library(lattice)
+library(BSDA)
 library(cli)
 library(dplyr)
+library(ggplot2)
 library(ggrepel)
 library(ggimage)
 library(ggalt)
@@ -84,6 +87,19 @@ season_avgs <- within(season_avgs,
                                                 "darkorange", "turquoise4");
                       yards_colour <- ifelse(yards_diff > 0,
                                              "darkorange", "turquoise4") })
+
+#perform Z-tests for penalties and penalty yards
+#first we need the SD for the variables being tested
+sd_reg_pen = sd(penalty_stitch$penalties_reg_avg)
+sd_post_pen = sd(penalty_stitch$penalties)
+sd_reg_yds = sd(penalty_stitch$penalty_yards_reg_avg)
+sd_post_yds = sd(penalty_stitch$penalty_yards)
+#now the Z-tests
+z.test(x = penalty_stitch$penalties_reg_avg, y = penalty_stitch$penalties,
+       sigma.x = sd_reg_pen, sigma.y = sd_post_pen)
+
+z.test(x = penalty_stitch$penalty_yards_reg_avg, sigma.x = sd_reg_yds,
+       y = penalty_stitch$penalty_yards, sigma.y = sd_post_yds)
 
 #####make the plot for # of penalties
 season_avgs %>%
