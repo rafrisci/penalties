@@ -23,6 +23,12 @@ data <- data %>%
       penalty_team == 'STL' ~ 'LA',
       TRUE ~ penalty_team
     ),
+    posteam = case_when(
+      posteam == 'LV' ~ 'OAK',
+      posteam == 'SD' ~ 'LAC',
+      posteam == 'STL' ~ 'LA',
+      TRUE ~ posteam
+    ),
     team_szn = paste0(penalty_team, season)
   )
 
@@ -33,6 +39,19 @@ post <- data %>%
   summarize(penalty_yards = sum(penalty_yards),
             penalties = n()) %>%
   ungroup()
+
+#get all postseason teams and weeks (because sometimes refs call nada)
+post_teams<- data %>%
+  filter(season_type != "REG") %>%
+  distinct(posteam, season, week) %>%
+  rename(penalty_team = posteam) %>%
+  filter(!is.na(penalty_team))
+
+#join post penalty info to post_teams
+post <- post_teams %>%
+  left_join(post, by = c("penalty_team" = "penalty_team", "season" = "season",
+                         "week" = "week")) %>%
+  replace_na(list(penalty_yards = 0, penalties = 0))
 
 #get regular season data by team and season
 reg <- data %>%
@@ -57,8 +76,7 @@ cat("Avg # of penalty yards per team regular season", mean(reg$penalty_yards))
 #join regular and postseason data
 penalty_stitch <- post %>% left_join(reg, by = c(
   "penalty_team" = "penalty_team", "season" = "season"
-  ))
-penalty_stitch <- penalty_stitch %>%
+  )) %>%
   select(-c(weeks)) %>%
   rename(team = penalty_team, penalty_yards = penalty_yards.x,
          penalties = penalties.x, penalty_yards_reg_avg = penalty_yards.y,
@@ -87,6 +105,16 @@ season_avgs <- within(season_avgs,
                                                 "darkorange", "turquoise4");
                       yards_colour <- ifelse(yards_diff > 0,
                                              "darkorange", "turquoise4") })
+
+#view the means for the playoff team data
+cat("Avg # of penalties per team postseason",
+    mean(penalty_stitch$penalties))
+cat("Avg # of penalty yards per team postseason",
+    mean(penalty_stitch$penalty_yards))
+cat("Avg # of penalties per team regular season",
+    mean(penalty_stitch$penalties_reg_avg))
+cat("Avg # of penalty yards per team regular season",
+    mean(penalty_stitch$penalty_yards_reg_avg))
 
 #perform Z-tests for penalties and penalty yards
 #first we need the SD for the variables being tested
