@@ -58,8 +58,8 @@ reg <- data %>%
   filter(season_type == "REG", penalty == 1) %>%
   group_by(penalty_team, season) %>%
   summarize(penalty_yards = sum(penalty_yards),
-            penalties = n(),
-            weeks = n_distinct(week)) %>%
+            penalties = n()) %>%
+  mutate(weeks = case_when(season < 2021 ~ 16, season >= 2021 ~ 17)) %>%
   ungroup()
 
 #get regular season total averages
@@ -99,12 +99,6 @@ season_avgs <- penalty_stitch %>%
             )
 season_avgs$season <- as.factor(season_avgs$season)
 
-#So the column and lines can have different colors
-season_avgs <- within(season_avgs,
-                      {penalty_colour <- ifelse(penalty_diff > 0,
-                                                "darkorange", "turquoise4");
-                      yards_colour <- ifelse(yards_diff > 0,
-                                             "darkorange", "turquoise4") })
 
 #view the means for the playoff team data
 cat("Avg # of penalties per team postseason",
@@ -128,6 +122,13 @@ z.test(x = penalty_stitch$penalties_reg_avg, y = penalty_stitch$penalties,
 
 z.test(x = penalty_stitch$penalty_yards_reg_avg, sigma.x = sd_reg_yds,
        y = penalty_stitch$penalty_yards, sigma.y = sd_post_yds)
+
+#So the column and lines can have different colors
+season_avgs <- within(season_avgs,
+                      {penalty_colour <- ifelse(penalty_diff > 0,
+                                                "darkorange", "turquoise4");
+                      yards_colour <- ifelse(yards_diff > 0,
+                                             "darkorange", "turquoise4") })
 
 #####make the plot for # of penalties
 season_avgs %>%
