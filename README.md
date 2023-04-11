@@ -21,7 +21,7 @@ There are still notable differences between regular and postseason averages even
 Moving onto the linear regressions, the coefficient estimations and average values over the course of the season for playoff team penalties over the course of the season are below:
 
 | Coefficients | Estimates | P-values|
-| ------------ | --------- | ------- |
+| ------------ | :-------: | :-----: |
 | Intercept    | 6.72      | < 0.001 |
 | Week         | -0.056    | < 0.001 |
 | Postseason   | -0.52     | 0.0063  |
@@ -35,7 +35,7 @@ Using the #eyetest on the time series above we can see a few drops from weeks 2 
 The results for playoff team penalty yards allowed over the course of the season are below:
 
 | Coefficients | Estimates | P-values|
-| ------------ | --------- | ------- |
+| ------------ | :-------: | :-----: |
 | Intercept    | 58.51     | < 0.001 |
 | Week         | -0.57     | < 0.001 |
 | Postseason   | -5.02     | 0.0074  |
