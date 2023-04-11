@@ -14,7 +14,7 @@ library(tidyverse)
 options(scipen = 9999)
 
 setwd(dirname(getActiveDocumentContext()$path))
-data <- nflfastR::load_pbp(2011:2022)
+data <- nflfastR::load_pbp(2010:2022)
 data <- data %>%
   mutate(
     penalty_team = case_when(
@@ -134,7 +134,7 @@ season_avgs <- within(season_avgs,
 season_avgs %>%
   ggplot() +
   geom_segment(data=season_avgs, aes(y = season, yend = season, x=4, xend=7),
-               color="gray85", size=0.15) +
+               color="gray60", size=0.15) +
   ggalt::geom_dumbbell(aes(y = season, x = penalties, xend = penalties_reg_avg),
                        size = 2, size_x = 5, size_xend = 5,
                        color = season_avgs$penalty_colour,
@@ -161,7 +161,7 @@ season_avgs %>%
                 y = season, x=7.25)) +
   geom_text(data=filter(season_avgs, season==2022), 
             aes(x = 7.25, y = season, label = "Difference"),
-            color="black", size=5, vjust=-1.5, fontface="bold") +
+            color="black", size=5, vjust=-1.125, fontface="bold") +
   labs(x = 'Penalties',
        y = 'Seasons',
        title = 'Penalties Called in Regular Season VS Postseason',
@@ -181,19 +181,19 @@ season_avgs %>%
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.border = element_blank(),
-    plot.caption = element_text(size = 12, vjust = 7, hjust = 0.95),
+    plot.caption = element_text(size = 12, vjust = 7.25, hjust = 0.95),
     axis.title.y = element_text(size = 24, vjust = 10),
     axis.title.x = element_text(size = 24, vjust = 2)
   ) +
   scale_x_continuous()
-ggsave(path = "plots", filename = "penalties.png", width = 16, height = 9,
-       dpi = 80)
+ggsave(path = "visualizations", filename = "penalties.png", width = 16,
+       height = 9, dpi = 80)
 
 #####make the plot for penalty yards
 season_avgs %>%
   ggplot() +
   geom_segment(data=season_avgs, aes(y = season, yend = season, x=33, xend=62),
-               color="gray85", size=0.15) +
+               color="gray60", size=0.15) +
   ggalt::geom_dumbbell(aes(y = season, x = penalty_yards,
                            xend = penalty_yards_reg_avg), size = 2,
                        size_x = 5, size_xend = 5,
@@ -222,7 +222,7 @@ season_avgs %>%
                 y = season, x=62)) +
   geom_text(data=filter(season_avgs, season==2022), 
             aes(x = 62, y = season, label = "Difference"),
-            color="black", size=5, vjust=-1.5, fontface="bold") +
+            color="black", size=5, vjust=-1.125, fontface="bold") +
   labs(x = 'Penalty Yards',
        y = 'Seasons',
        title = 'Penalty Yards in Regular Season VS Postseason',
@@ -242,13 +242,13 @@ season_avgs %>%
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
     panel.border = element_blank(),
-    plot.caption = element_text(size = 12, vjust = 7, hjust = 0.95),
+    plot.caption = element_text(size = 12, vjust = 7.25, hjust = 0.95),
     axis.title.y = element_text(size = 24, vjust = 10),
     axis.title.x = element_text(size = 24, vjust = 2)
   ) +
   scale_x_continuous()
-ggsave(path = "plots", filename = "penalty_yds.png", width = 16, height = 9,
-       dpi = 80)
+ggsave(path = "visualizations", filename = "penalty_yds.png", width = 16,
+       height = 9, dpi = 80)
 
 
 ##### performing time series and statistical analysis
@@ -272,8 +272,7 @@ ts_week_mean <- time_series_data %>%
             penalties = mean(penalties),
             sample_size = n())
 
-#fix 2021 bonus week
-#do we want this?
+#change data for 2021 and 2022 extra regular season week
 #time_series_data <- select_data %>%
 #  mutate(
 #    week = case_when(
@@ -296,46 +295,6 @@ ts_week_mean <- ts_week_mean %>%
   mutate(
     season_typePOST = ifelse(season_type=='POST', 1, 0)
   )
-
-#Collinearity is found between week and season_type (expected!)
-#What does this mean for the upcoming regression and how it can be interpreted?
-#uncertainty of coefficient estimates
-#increases standard error, which causes a decline in t-stat
-#This increases the likelihood to fail to reject the null hypothesis, and cannot
-#as reliably lean on coefficients for scope of impact
-
-#linear model on penalty yards
-lm.pen.yds <- lm(formula = pen_yards ~ week + season_typePOST,
-                 data = time_series_data)
-summary(lm.pen.yds)
-
-pen_yds_predict <- cbind(ts_week_mean,
-                         predict(lm.pen.yds, interval = 'confidence',
-                                 newdata = ts_week_mean))
-
-#####penalty yards time series plot
-ggplot(pen_yds_predict, aes(x=week, y=pen_yards, color = season_type)) +
-  geom_point(aes(size = sample_size)) +
-  geom_line() +
-  scale_color_manual(values = c("REG" = "turquoise4", "POST" = "darkorange2")) +
-  #geom_line(aes(week, fit, color = "black")) +
-  #geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.3) +
-  theme_bw() +
-  theme(
-    aspect.ratio = 9 / 16,
-    plot.title = element_text(size = 30, hjust = .5, face = 'bold'),
-    plot.caption = element_text(size = 12, vjust = 9),
-    axis.title.y = element_text(size = 24),
-    axis.title.x = element_text(size = 24),
-    axis.text.y = element_text(size = 12),
-    axis.text.x = element_text(size = 12),
-  ) +
-  labs(x = 'Week',
-       y = 'Penalty Yards',
-       title = 'Average Penalty Yards of Playoff Teams By Week',
-       caption = "Data: @nflfastR")
-ggsave(path = "plots", filename = "penalty_yds_ts.png", width = 16, height = 9,
-       dpi = 80)
 
 #linear model on penalties
 lm.pens <- lm(formula = penalties ~ week + season_typePOST,
@@ -364,6 +323,38 @@ ggplot(pen_yds_predict, aes(x=week, y=penalties, color = season_type)) +
   labs(x = 'Week',
        y = 'Penalties',
        title = 'Average Penalties of Playoff Teams By Week',
+       caption = "Data: @nflfastR") +
+  scale_y_continuous(limits = c(3.5, 7))
+ggsave(path = "visualizations", filename = "penalties_ts.png", width = 16,
+       height = 9, dpi = 80)
+
+#linear model on penalty yards
+lm.pen.yds <- lm(formula = pen_yards ~ week + season_typePOST,
+                 data = time_series_data)
+summary(lm.pen.yds)
+
+pen_yds_predict <- cbind(ts_week_mean,
+                         predict(lm.pen.yds, interval = 'confidence',
+                                 newdata = ts_week_mean))
+
+#####penalty yards time series plot
+ggplot(pen_yds_predict, aes(x=week, y=pen_yards, color = season_type)) +
+  geom_point(aes(size = sample_size)) +
+  geom_line() +
+  scale_color_manual(values = c("REG" = "turquoise4", "POST" = "darkorange2")) +
+  theme_bw() +
+  theme(
+    aspect.ratio = 9 / 16,
+    plot.title = element_text(size = 30, hjust = .5, face = 'bold'),
+    plot.caption = element_text(size = 12, vjust = 9),
+    axis.title.y = element_text(size = 24),
+    axis.title.x = element_text(size = 24),
+    axis.text.y = element_text(size = 12),
+    axis.text.x = element_text(size = 12),
+  ) +
+  labs(x = 'Week',
+       y = 'Penalty Yards',
+       title = 'Average Penalty Yards of Playoff Teams By Week',
        caption = "Data: @nflfastR")
-ggsave(path = "plots", filename = "penalties_ts.png", width = 16, height = 9,
-       dpi = 80)
+ggsave(path = "visualizations", filename = "penalty_yds_ts.png", width = 16,
+       height = 9, dpi = 80)
